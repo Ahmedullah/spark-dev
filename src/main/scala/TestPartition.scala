@@ -27,6 +27,12 @@ object TestPartition {
 
 		println(">>>> reduceByKey(_ + _)")
 		pairs.reduceByKey(_ + _).collect.foreach(println)
+
+		println(">>>> mapValues(values => values * 2), multiply each value of a key by 2")
+		pairs.mapValues(values => values * 2).collect.foreach(println)
+
+		println(">>>> flatMapValues(_ to 2), generate a flat map of each value for a key from its value till 2")
+		pairs.flatMapValues(_ to 2).collect.foreach(println)
 	}
 }
 
