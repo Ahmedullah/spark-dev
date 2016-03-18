@@ -1,5 +1,5 @@
 
-import org.apache.spark.{ SparkConf, SparkContext }
+import org.apache.spark.{ SparkConf, SparkContext, HashPartitioner }
 
 /**
  * Sample for using PairRDDFunctions.combineByKey(...)
@@ -11,9 +11,10 @@ case class ScoreDetail(studentName: String, subject: String, score: Float)
 object TestCombineByKey {
 	def main(args: Array[String]): Unit = {
 		
-		val scores = List(ScoreDetail("Theresa", "Math", 98), ScoreDetail("Wilma", "Math", 88), 
-				ScoreDetail("Shamak", "Math", 75), ScoreDetail("Theresa", "English", 78), 
-				ScoreDetail("Wilma", "English", 90), ScoreDetail("Shamak", "English", 80))
+		val scores = List(ScoreDetail("A", "Math", 98), ScoreDetail("A", "English", 88), 
+				ScoreDetail("B", "Math", 75), ScoreDetail("B", "English", 78), 
+				ScoreDetail("C", "Math", 90), ScoreDetail("C", "English", 80),
+				ScoreDetail("D", "Math", 91), ScoreDetail("D", "English", 80))
 				
 		// convert to (key, values) -> (Student Name: String, score: ScoreDetail)
 		val scoresWithKey = for { i <- scores } yield (i.studentName, i)
@@ -21,7 +22,20 @@ object TestCombineByKey {
 		val sc = new SparkContext(new SparkConf().setAppName("TestCombineByKeyJob"))
 		
 		// If data set is reused then cache recommended...
-		val scoresWithKeyRDD = sc.parallelize(scoresWithKey).cache
+		val scoresWithKeyRDD = sc.parallelize(scoresWithKey).partitionBy(new HashPartitioner(3)).cache
+		
+		println(">>>> Number of partitions: " + scoresWithKeyRDD.getNumPartitions)
+
+		println(">>>> Elements in each partition")
+
+		scoresWithKeyRDD.foreachPartition(partition => println(partition.length))
+
+		// explore each partition...
+		println(">>>> Exploring partitions' data...")
+		
+		scoresWithKeyRDD.foreachPartition(
+				partition => partition.foreach(
+						item => println(item._2)))
 		
 		// Combine the scores for each student
 		val avgScoresRDD = scoresWithKeyRDD.combineByKey(
